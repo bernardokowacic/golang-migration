@@ -98,7 +98,7 @@ func saveMigration(w http.ResponseWriter, r *http.Request) {
 	err := conn.PingContext(ctx)
 	if err != nil {
 		fmt.Println(err)
-		fmt.Fprintf(w, "false")
+		fmt.Fprintf(w, "Conexão com o banco não está funcionando")
 		return
 	}
 
@@ -110,17 +110,16 @@ func saveMigration(w http.ResponseWriter, r *http.Request) {
 		);`
 
 	stmt, _ := conn.Prepare(tsql)
-	res, err := stmt.Exec(
+	_, err = stmt.Exec(
 		r.FormValue("title"),
 		r.FormValue("query"),
 		time.Now().Format("2006-01-02 15:04:05"),
 		0,
 		0,
 	)
-
 	if err != nil {
 		fmt.Println(err)
-		fmt.Fprintf(w, "false")
+		fmt.Fprintf(w, "Erro ao executar insert")
 		return
 	}
 
