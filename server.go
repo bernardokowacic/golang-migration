@@ -15,6 +15,8 @@ import (
 )
 
 var conn *sql.DB
+var testConn *sql.DB
+var prodConn *sql.DB
 var temp = template.Must(template.ParseGlob("templates/*.html"))
 
 type Migrations struct {
@@ -86,11 +88,121 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateProduction(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	err := conn.PingContext(ctx)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Conexão com o banco de migrations não está funcionando")
+		return
+	}
+	_, queries, err3 := listMigrations(2)
+	if err3 != nil {
+		fmt.Println(err3)
+	}
+
+	if len(queries) < 1 {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Todas as migrations já foram rodadas no BD de produção")
+		return
+	}
+
+	connectionString := "sqlserver://sa:QWer1234*()@192.168.16.2:1435"
+	db, err := sql.Open("mssql", connectionString)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Conexão com o banco não está funcionando")
+		return
+	}
+	prodConn = db
+	ctxTest := context.Background()
+	err = prodConn.PingContext(ctxTest)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Conexão com o banco de produção não está funcionando")
+		return
+	}
+	defer prodConn.Close()
+
+	for x := 0; x < len(queries); x++ {
+		stmt, _ := prodConn.Prepare(queries[x].Query)
+		_, err = stmt.Exec()
+		if err != nil {
+			fmt.Println(err)
+			fmt.Fprintf(w, "Erro ao executar insert no BD de produção")
+			return
+		}
+
+		prodStmt, _ := conn.Prepare("update migrations set Executed_on_production = 1 where id = ?")
+		_, err := prodStmt.Exec(
+			queries[x].Codigo,
+		)
+		if err != nil {
+			fmt.Println(err)
+			fmt.Fprintf(w, "Erro ao executar update na migration executada")
+			return
+		}
+	}
+
 	fmt.Fprintf(w, "true")
 }
 
 func updateTest(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "teste")
+	ctx := context.Background()
+	err := conn.PingContext(ctx)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Conexão com o banco de migrations não está funcionando")
+		return
+	}
+	_, queries, err3 := listMigrations(1)
+	if err3 != nil {
+		fmt.Println(err3)
+	}
+
+	if len(queries) < 1 {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Todas as migrations já foram rodadas no BD de teste")
+		return
+	}
+
+	connectionString := "sqlserver://sa:QWer1234*()@192.168.16.2:1434"
+	db, err := sql.Open("mssql", connectionString)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Conexão com o banco de teste não está funcionando")
+		return
+	}
+	testConn = db
+	ctxTest := context.Background()
+	err = testConn.PingContext(ctxTest)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Conexão com o banco não está funcionando")
+		return
+	}
+	defer testConn.Close()
+
+	for x := 0; x < len(queries); x++ {
+		stmt, _ := testConn.Prepare(queries[x].Query)
+		_, err = stmt.Exec()
+		if err != nil {
+			fmt.Println(err)
+			fmt.Fprintf(w, "Erro ao executar insert no BD de teste")
+			return
+		}
+
+		testStmt, _ := conn.Prepare("update migrations set executed_on_test = 1 where id = ?")
+		_, err := testStmt.Exec(
+			queries[x].Codigo,
+		)
+		if err != nil {
+			fmt.Println(err)
+			fmt.Fprintf(w, "Erro ao executar update na migration executada")
+			return
+		}
+	}
+
+	fmt.Fprintf(w, "true")
 }
 
 func saveMigration(w http.ResponseWriter, r *http.Request) {
@@ -155,16 +267,13 @@ func listMigrations(filter uint8) (int, []Migrations, error) {
 	query := "select * from migrations"
 	switch filter {
 	case 1: // Executado somente em produção
-		query = query + " where executed_on_production = 1 and executed_on_test = 0"
+		query = query + " where executed_on_test = 0"
 	case 2: // Executado somente em teste
-		query = query + " where executed_on_production = 0 and executed_on_test = 1"
-	case 3: // Executado em teste e em produção
-		query = query + " where executed_on_production = 1 and executed_on_test = 1"
-	case 4: // Não executado em lugar nenhum
-		query = query + " where executed_on_production = 0 and executed_on_test = 0"
+		query = query + " where executed_on_production = 0"
 	default:
 		query = query
 	}
+	query = query + " order by created_at desc"
 
 	tsql := fmt.Sprintf(query)
 	rows, err := conn.Query(tsql)
