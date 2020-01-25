@@ -28,19 +28,21 @@ type Migrations struct {
 }
 
 func main() {
-	http.HandleFunc("/", index)
-	http.HandleFunc("/update-production", updateProduction)
-	http.HandleFunc("/update-test", updateTest)
-	http.HandleFunc("/save-migration", saveMigration)
-	http.ListenAndServe(":8000", nil)
-}
-
-func index(w http.ResponseWriter, r *http.Request) {
 	err := openDatabaseConnection()
 	if err != nil {
 		fmt.Println(err)
 	}
 
+	http.HandleFunc("/", index)
+	http.HandleFunc("/update-production", updateProduction)
+	http.HandleFunc("/update-test", updateTest)
+	http.HandleFunc("/save-migration", saveMigration)
+	http.ListenAndServe(":8000", nil)
+
+	closeDatabaseConnection()
+}
+
+func index(w http.ResponseWriter, r *http.Request) {
 	_, queries, err3 := listMigrations(0)
 	if err3 != nil {
 		fmt.Println(err3)
@@ -81,8 +83,6 @@ func index(w http.ResponseWriter, r *http.Request) {
 	if err2 != nil {
 		fmt.Println(err2)
 	}
-
-	closeDatabaseConnection()
 }
 
 func updateProduction(w http.ResponseWriter, r *http.Request) {
@@ -97,36 +97,30 @@ func saveMigration(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	err := conn.PingContext(ctx)
 	if err != nil {
-		//fmt.Fprintf(w, err)
-		//return -1, err
+		fmt.Println(err)
+		fmt.Fprintf(w, "Conexão com o banco não está funcionando")
+		return
 	}
 
-	tsql := `INSERT INTO migrations (
-		name, query, created_at, executed_on_test, executed_on_production
-	) VALUES (
-		@name, @query, @created_at, @executed_on_test, @executed_on_production
-	);`
+	tsql :=
+		`INSERT INTO migrations (
+			name, query, created_at, executed_on_test, executed_on_production
+		) VALUES (
+			?, ?, ?, ?, ?
+		);`
 
-	stmt, err := conn.Prepare(tsql)
-	if err != nil {
-		//fmt.Fprintf(w, err)
-		//return -1, err
-	}
-	defer stmt.Close()
-
-	row := stmt.QueryRowContext(
-		ctx,
-		sql.Named("name", r.FormValue("title")),
-		sql.Named("query", r.FormValue("query")),
-		sql.Named("created_at", time.Now().Format("2006-01-02 15:04:05")),
-		sql.Named("executed_on_test", 0),
-		sql.Named("executed_on_test", 0),
+	stmt, _ := conn.Prepare(tsql)
+	_, err = stmt.Exec(
+		r.FormValue("title"),
+		r.FormValue("query"),
+		time.Now().Format("2006-01-02 15:04:05"),
+		0,
+		0,
 	)
-	var newID int64
-	err = row.Scan(&newID)
 	if err != nil {
-		//fmt.Fprintf(w, err)
-		//return -1, err
+		fmt.Println(err)
+		fmt.Fprintf(w, "Erro ao executar insert")
+		return
 	}
 
 	fmt.Fprintf(w, "true")
