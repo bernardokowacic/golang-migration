@@ -8,8 +8,11 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"text/template"
 	"time"
+
+	"github.com/joho/godotenv"
 
 	_ "github.com/denisenkom/go-mssqldb"
 )
@@ -30,6 +33,11 @@ type Migrations struct {
 }
 
 func main() {
+	errEnv := godotenv.Load()
+	if errEnv != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	err := openDatabaseConnection()
 	if err != nil {
 		fmt.Println(err)
@@ -239,8 +247,8 @@ func saveMigration(w http.ResponseWriter, r *http.Request) {
 }
 
 func openDatabaseConnection() error {
-	connectionString := "sqlserver://sa:QWer1234*()@192.168.16.2:1433"
-	db, err := sql.Open("mssql", connectionString)
+	dbMigration := os.Getenv("DB_MIGRATION")
+	db, err := sql.Open("mssql", dbMigration)
 	if err != nil {
 		return err
 	}
