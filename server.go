@@ -50,8 +50,11 @@ func index(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err3)
 	}
 
+	fmt.Println(len(queries))
 	totalPagesFloat := float64(len(queries) / 15)
+	fmt.Println(totalPagesFloat)
 	totalPages := uint32(math.Ceil(totalPagesFloat))
+	fmt.Println(totalPages)
 	if totalPages <= 0 {
 		totalPages = 1
 	}
@@ -108,6 +111,7 @@ func updateProduction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	connectionString := "sqlserver://sa:QWer1234*()@192.168.16.2:1435"
 	db, err := sql.Open("mssql", connectionString)
 	if err != nil {
 		fmt.Println(err)
@@ -166,6 +170,7 @@ func updateTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	connectionString := "sqlserver://sa:db11%23@192.168.50.24:1433"
 	db, err := sql.Open("mssql", connectionString)
 	if err != nil {
 		fmt.Println(err)
@@ -239,6 +244,7 @@ func saveMigration(w http.ResponseWriter, r *http.Request) {
 }
 
 func openDatabaseConnection() error {
+	connectionString := "sqlserver://sa:db11%23@192.168.50.24:1433?database=MORPHEUS_MIGRATIONS"
 	db, err := sql.Open("mssql", connectionString)
 	if err != nil {
 		return err
@@ -264,6 +270,7 @@ func listMigrations(filter uint8) (int, []Migrations, error) {
 	}
 
 	query := "select * from migrations"
+	pagination := ""
 	switch filter {
 	case 1: // Executado somente em produção
 		query = query + " where executed_on_test = 0"
@@ -271,8 +278,12 @@ func listMigrations(filter uint8) (int, []Migrations, error) {
 		query = query + " where executed_on_production = 0"
 	default:
 		query = query
+		pagination = " OFFSET 0 ROWS FETCH NEXT 15 ROWS ONLY"
 	}
 	query = query + " order by created_at desc"
+	query = query + pagination
+
+	fmt.Println(query)
 
 	tsql := fmt.Sprintf(query)
 	rows, err := conn.Query(tsql)
