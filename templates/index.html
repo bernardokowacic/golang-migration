@@ -44,7 +44,7 @@
             <div class="col-12 col-sm-6 col-md-4">
                 <ul class="list-group" style="height: 73vh; overflow-y: scroll;">
                     {{range $index, $element := .Queries}}
-                    <li class="list-group-item list-group-item-action" style="cursor: pointer;"
+                    <li class="list-group-item list-group-item-action" id="migration_{{$index}}" style="cursor: pointer;"
                         onclick="selectMigration({{$index}})">
                         {{$element.Created_at}} | {{$element.Name}}
                     </li>
@@ -86,6 +86,10 @@
             font-size: 13px;
             padding: 5px;
         }
+
+        .selected{
+            background-color: #f8f9fa;
+        }
         
         @media screen and (max-width: 768px) {
             .input-group, .btn-save-query{
@@ -98,7 +102,11 @@
         const obj = {{.Json }} // Retorna todas as migrations já executadas
 
         function selectMigration(migrationId) {
-            $('#print-query').value = obj[migrationId].Query
+            document.querySelector('#migration-name').value = obj[migrationId].Name;
+            editor.setValue(obj[migrationId].Query);
+
+            document.querySelector('.list-group-item').classList.remove('selected');
+            document.querySelector('#migration_'+migrationId).classList.add('selected');
         }
 
         function changeDatabase(evt) {
