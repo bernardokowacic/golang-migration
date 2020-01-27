@@ -56,6 +56,8 @@ func index(w http.ResponseWriter, r *http.Request) {
 		totalPages = 1
 	}
 
+	fmt.Println(totalPages)
+
 	totalRegisters := 2
 
 	var currentPage uint32 = 1
@@ -106,7 +108,6 @@ func updateProduction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	connectionString := "sqlserver://sa:QWer1234*()@192.168.16.2:1435"
 	db, err := sql.Open("mssql", connectionString)
 	if err != nil {
 		fmt.Println(err)
@@ -165,7 +166,6 @@ func updateTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	connectionString := "sqlserver://sa:QWer1234*()@192.168.16.2:1434"
 	db, err := sql.Open("mssql", connectionString)
 	if err != nil {
 		fmt.Println(err)
@@ -239,7 +239,6 @@ func saveMigration(w http.ResponseWriter, r *http.Request) {
 }
 
 func openDatabaseConnection() error {
-	connectionString := "sqlserver://sa:QWer1234*()@192.168.16.2:1433"
 	db, err := sql.Open("mssql", connectionString)
 	if err != nil {
 		return err
