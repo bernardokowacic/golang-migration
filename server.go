@@ -101,6 +101,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateProduction(w http.ResponseWriter, r *http.Request) {
+	dbMigration := os.Getenv("DB_PRODUCTION")
 	ctx := context.Background()
 	err := conn.PingContext(ctx)
 	if err != nil {
@@ -119,8 +120,7 @@ func updateProduction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	connectionString := "sqlserver://sa:QWer1234*()@192.168.16.2:1435"
-	db, err := sql.Open("mssql", connectionString)
+	db, err := sql.Open("mssql", dbMigration)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Conexão com o banco não está funcionando")
@@ -160,6 +160,7 @@ func updateProduction(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateTest(w http.ResponseWriter, r *http.Request) {
+	dbMigration := os.Getenv("DB_TEST")
 	ctx := context.Background()
 	err := conn.PingContext(ctx)
 	if err != nil {
@@ -178,8 +179,7 @@ func updateTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	connectionString := "sqlserver://sa:db11%23@192.168.50.24:1433"
-	db, err := sql.Open("mssql", connectionString)
+	db, err := sql.Open("mssql", dbMigration)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Conexão com o banco de teste não está funcionando")
@@ -277,8 +277,7 @@ func listMigrations(filter uint8) (int, []Migrations, error) {
 		return -1, nil, err
 	}
 
-	query := "select * from migrations"
-	pagination := ""
+	query := "select * from morpheus_migration"
 	switch filter {
 	case 1: // Executado somente em produção
 		query = query + " where executed_on_test = 0"
