@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/joho/godotenv"
 
 	_ "github.com/denisenkom/go-mssqldb"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -130,11 +132,21 @@ func updateProduction(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateTest(w http.ResponseWriter, r *http.Request) {
-	dbMigration := os.Getenv("DB_TEST")
-	ctx := context.Background()
-	err := conn.PingContext(ctx)
+	var selectedMigrations []string //{ value string }
+	err := json.Unmarshal([]byte(r.FormValue("migrationsToRun")), &selectedMigrations)
 	if err != nil {
 		fmt.Println(err)
+		fmt.Fprintf(w, "erro ao receber queries à serem executadas")
+		return
+	}
+	migrationsToRunIDs := strings.Join(selectedMigrations[:], ",")
+	fmt.Println(migrationsToRunIDs) // FALTA AJUSTAR O SELECT PARA BUSCAR SOMENTE OS IDS QUE ESTÃO NESSA VARIÁVEL
+
+	dbMigration := os.Getenv("DB_TEST")
+	ctx := context.Background()
+	err2 := conn.PingContext(ctx)
+	if err2 != nil {
+		fmt.Println(err2)
 		fmt.Fprintf(w, "Conexão com o banco de migrations não está funcionando")
 		return
 	}
@@ -184,7 +196,6 @@ func updateTest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	fmt.Fprintf(w, "true")
 }
 
@@ -234,8 +245,4 @@ func openDatabaseConnection() error {
 		log.Fatal(err.Error())
 	}
 	return nil
-}
-
-func closeDatabaseConnection() {
-	conn.Close()
 }
