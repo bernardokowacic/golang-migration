@@ -9,18 +9,18 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 	"time"
 
-	"github.com/joho/godotenv"
-
 	_ "github.com/denisenkom/go-mssqldb"
+	"github.com/joho/godotenv"
 )
 
+var temp = template.Must(template.ParseGlob("templates/*.html"))
 var conn *sql.DB
 var testConn *sql.DB
 var prodConn *sql.DB
-var temp = template.Must(template.ParseGlob("templates/*.html"))
 
 type Migrations struct {
 	Codigo                 uint
@@ -58,11 +58,8 @@ func index(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err3)
 	}
 
-	fmt.Println(len(queries))
 	totalPagesFloat := float64(len(queries) / 15)
-	fmt.Println(totalPagesFloat)
 	totalPages := uint32(math.Ceil(totalPagesFloat))
-	fmt.Println(totalPages)
 	if totalPages <= 0 {
 		totalPages = 1
 	}
@@ -101,11 +98,21 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateProduction(w http.ResponseWriter, r *http.Request) {
-	dbMigration := os.Getenv("DB_PRODUCTION")
-	ctx := context.Background()
-	err := conn.PingContext(ctx)
+	var selectedMigrations []string //{ value string }
+	err := json.Unmarshal([]byte(r.FormValue("migrationsToRun")), &selectedMigrations)
 	if err != nil {
 		fmt.Println(err)
+		fmt.Fprintf(w, "erro ao receber queries à serem executadas")
+		return
+	}
+	migrationsToRunIDs := strings.Join(selectedMigrations[:], ",")
+	fmt.Println(migrationsToRunIDs) // FALTA AJUSTAR O SELECT PARA BUSCAR SOMENTE OS IDS QUE ESTÃO NESSA VARIÁVEL
+
+	dbMigration := os.Getenv("DB_PRODUCTION")
+	ctx := context.Background()
+	err1 := conn.PingContext(ctx)
+	if err1 != nil {
+		fmt.Println(err1)
 		fmt.Fprintf(w, "Conexão com o banco de migrations não está funcionando")
 		return
 	}
@@ -160,11 +167,21 @@ func updateProduction(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateTest(w http.ResponseWriter, r *http.Request) {
-	dbMigration := os.Getenv("DB_TEST")
-	ctx := context.Background()
-	err := conn.PingContext(ctx)
+	var selectedMigrations []string //{ value string }
+	err := json.Unmarshal([]byte(r.FormValue("migrationsToRun")), &selectedMigrations)
 	if err != nil {
 		fmt.Println(err)
+		fmt.Fprintf(w, "erro ao receber queries à serem executadas")
+		return
+	}
+	migrationsToRunIDs := strings.Join(selectedMigrations[:], ",")
+	fmt.Println(migrationsToRunIDs) // FALTA AJUSTAR O SELECT PARA BUSCAR SOMENTE OS IDS QUE ESTÃO NESSA VARIÁVEL
+
+	dbMigration := os.Getenv("DB_TEST")
+	ctx := context.Background()
+	err2 := conn.PingContext(ctx)
+	if err2 != nil {
+		fmt.Println(err2)
 		fmt.Fprintf(w, "Conexão com o banco de migrations não está funcionando")
 		return
 	}
@@ -214,7 +231,6 @@ func updateTest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	fmt.Fprintf(w, "true")
 }
 
@@ -277,7 +293,8 @@ func listMigrations(filter uint8) (int, []Migrations, error) {
 		return -1, nil, err
 	}
 
-	query := "select * from morpheus_migration"
+	query := "select * from migrations"
+	pagination := " "
 	switch filter {
 	case 1: // Executado somente em produção
 		query = query + " where executed_on_test = 0"
@@ -289,8 +306,6 @@ func listMigrations(filter uint8) (int, []Migrations, error) {
 	}
 	query = query + " order by created_at desc"
 	query = query + pagination
-
-	fmt.Println(query)
 
 	tsql := fmt.Sprintf(query)
 	rows, err := conn.Query(tsql)
