@@ -44,12 +44,32 @@
             <div class="col-12 col-sm-6 col-md-4">
                 <ul class="list-group" style="height: 73vh; overflow-y: scroll;">
                     {{range $index, $element := .Queries}}
-                    <li class="list-group-item list-group-item-action position-relative" id="migration_{{$index}}" style="cursor: pointer; padding-right: 30px;">
+                    <li class="list-group-item list-group-item-action position-relative d-flex align-items-center" id="migration_{{$index}}" style="cursor: pointer; padding-right: 30px;">
+                        {{if $element.Executed_on_test}}
+                            <div title="Executado em teste" class="" style="padding-right: 5px; line-height: 15px;">
+                                <i class="fas fa-check" style="color: green"></i>
+                            </div>
+                        {{end}}
+                        {{if not $element.Executed_on_test}}
+                            <div title="Executado em teste" class="" style="padding-right: 5px; line-height: 15px;">
+                                <i class="fas fa-check" style="color: lightgray"></i>
+                            </div>
+                        {{end}}
+                        {{if $element.Executed_on_production}}
+                            <div title="Executado em produção" class="" style="padding-right: 5px; line-height: 15px;">
+                                <i class="fas fa-check" style="color: green"></i>
+                            </div>
+                        {{end}}
+                        {{if not $element.Executed_on_production}}
+                            <div title="Executado em produção" class="" style="padding-right: 5px; line-height: 15px;">
+                                <i class="fas fa-check" style="color: lightgray"></i>
+                            </div>
+                        {{end}}
                         <div onclick="selectMigration({{$index}})">
                             {{$element.Created_at}} | {{$element.Name}}
                         </div>
                         {{if and (not $element.Executed_on_test) (not $element.Executed_on_production)}}
-                            <button type="button" title="Excluir" class="position-absolute btn btn-default" style="right: 0; top: 0; padding: 6px; line-height: 15px;" onclick="deleteMigration({{$index}})">
+                            <button type="button" title="Excluir" class="position-absolute btn btn-default" style="right: 5px; top: calc(50%-15px); padding: 6px; line-height: 15px;" onclick="deleteMigration({{$index}})">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         {{end}}
