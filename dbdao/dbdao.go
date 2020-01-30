@@ -25,24 +25,41 @@ func conn() (*sql.DB, error) {
 	return db, nil
 }
 
-func Select(query string) (*sql.Rows, error) {
+func Select(query string, where ...interface{}) (*sql.Rows, error) {
 	db, err := conn()
 	defer db.Close()
 
 	if err != nil {
-		if err != nil {
-			fmt.Println("Error select: ", err.Error())
-			return nil, err
-		}
+		fmt.Println("Error select: ", err.Error())
+		return nil, err
 	}
 
-	rows, err := db.Query(query)
-	if err != nil {
-		if err != nil {
-			fmt.Println("Error select: ", err.Error())
-			return nil, err
-		}
+	rows, rowsErr := db.Query(query, where...)
+
+	if rowsErr != nil {
+		fmt.Println("Error select: ", rowsErr.Error())
+		return nil, rowsErr
 	}
 
 	return rows, nil
+}
+
+func ExecOnMigration(query string, args ...interface{}) (bool, error) {
+	db, err := conn()
+	defer db.Close()
+
+	if err != nil {
+		fmt.Println("Error exec migration: ", err.Error())
+		return false, err
+	}
+
+	stmt, _ := db.Prepare(query)
+	_, errStmt := stmt.Exec(args...)
+
+	if errStmt != nil {
+		fmt.Println("Error exec migration: ", errStmt.Error())
+		return false, errStmt
+	}
+
+	return true, nil
 }

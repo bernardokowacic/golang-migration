@@ -19,18 +19,18 @@ type Migrations struct {
 	Executed_on_production bool
 }
 
-func GetAllMigrations(filter uint16) ([]Migrations, error) {
-	query := "select * from migrations"
-	pagination := " "
+func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
+	query := "select * from migrations "
+
+	pagination := fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT 15 ROWS ONLY", page)
+
 	switch filter {
 	case 1: // Executado somente em produção
 		query = query + " where executed_on_test = 0"
 	case 2: // Executado somente em teste
 		query = query + " where executed_on_production = 0"
-	default:
-		query = query
-		pagination = " OFFSET 0 ROWS FETCH NEXT 15 ROWS ONLY"
 	}
+
 	query = query + " order by created_at desc"
 	query = query + pagination
 
@@ -74,40 +74,65 @@ func GetAllMigrations(filter uint16) ([]Migrations, error) {
 	return migrations, nil
 }
 
-func ExecMigration(migration string, ambiente string) (bool, error) {
+func ExecMigration(migration Migrations, ambiente string) (bool, error) {
 	if ambiente != "teste" || ambiente != "producao" {
 		return false, errors.New("o parametro ambiente deve ser teste ou producao")
 	}
 
-	db, err := dbdao.ConnTest()
-	defer db.Close()
+	doUpdate := "update migrations set "
 
-	if err != nil {
-		if err != nil {
-			fmt.Println("Error exec migration test: ", err.Error())
-			return false, err
+	switch ambiente {
+	case "teste":
+		_, errMigration := dbdao.ExecOnTest(migration.Query)
+
+		if errMigration != nil {
+			fmt.Println("Error exec migration: ", errMigration.Error())
+			return false, errMigration
 		}
-	}
 
-	stmt, _ := db.Prepare(migration)
-	_, errStmt := stmt.Exec()
+		doUpdate = doUpdate + "executed_on_test = 1 where id = ?"
 
-	if errStmt != nil {
-		if errStmt != nil {
-			fmt.Println("Error exec migration test: ", errStmt.Error())
-			return false, errStmt
+		_, errUpdate := dbdao.ExecOnTest(doUpdate, migration.Codigo)
+
+		if errUpdate != nil {
+			fmt.Println("Error exec migration: ", errUpdate.Error())
+			return false, errUpdate
 		}
-	}
 
-	updateStmt, _ := db.Prepare("update migrations set executed_on_test = 1 where id = ?")
-	_, errUpdate := updateStmt.Exec(
-		migration,
-	)
-	if errUpdate != nil {
-		fmt.Println(errUpdate)
-		return false, errUpdate
+	case "producao":
+		_, errMigration := dbdao.ExecOnProductiont(migration.Query)
+
+		if errMigration != nil {
+			fmt.Println("Error exec migration: ", errMigration.Error())
+			return false, errMigration
+		}
+
+		doUpdate = doUpdate + "executed_on_production = 1 where id = ?"
+
+		_, errUpdate := dbdao.ExecOnProductiont(doUpdate, migration.Codigo)
+
+		if errUpdate != nil {
+			fmt.Println("Error exec migration: ", errUpdate.Error())
+			return false, errUpdate
+		}
 	}
 
 	return true, nil
+}
 
+func InsertMigration(title string, query string) (bool, error) {
+	tsql :=
+		`INSERT INTO migrations (
+			name, query, created_at, executed_on_test, executed_on_production
+		) VALUES (
+			?, ?, ?, ?, ?
+		);`
+
+	_, err := dbdao.ExecOnMigration(tsql, title, query, time.Now().Format("2006-01-02 15:04:05"), 0, 0)
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

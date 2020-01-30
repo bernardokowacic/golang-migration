@@ -14,7 +14,7 @@ import (
 var temp = template.Must(template.ParseGlob("templates/*.html"))
 
 func Index(w http.ResponseWriter, r *http.Request) {
-	queries, err := models.GetAllMigrations(0)
+	queries, err := models.GetAllMigrations(0, 0)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -59,7 +59,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateProduction(w http.ResponseWriter, r *http.Request) {
-	queries, err := models.GetAllMigrations(2)
+	queries, err := models.GetAllMigrations(2, 0)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -70,25 +70,15 @@ func UpdateProduction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// for x := 0; x < len(queries); x++ {
-	// 	stmt, _ := prodConn.Prepare(queries[x].Query)
-	// 	_, err = stmt.Exec()
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		fmt.Fprintf(w, "Erro ao executar insert no BD de produção")
-	// 		return
-	// 	}
+	for x := 0; x < len(queries); x++ {
+		_, err = models.ExecMigration(queries[x], "producao")
 
-	// 	prodStmt, _ := conn.Prepare("update migrations set Executed_on_production = 1 where id = ?")
-	// 	_, err := prodStmt.Exec(
-	// 		queries[x].Codigo,
-	// 	)
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		fmt.Fprintf(w, "Erro ao executar update na migration executada")
-	// 		return
-	// 	}
-	// }
+		if err != nil {
+			fmt.Println(err)
+			fmt.Fprintf(w, "Erro ao executar a migration")
+			return
+		}
+	}
 
 	fmt.Fprintf(w, "true")
 }
@@ -104,7 +94,7 @@ func UpdateTest(w http.ResponseWriter, r *http.Request) {
 	migrationsToRunIDs := strings.Join(selectedMigrations[:], ",")
 	fmt.Println(migrationsToRunIDs) // FALTA AJUSTAR O SELECT PARA BUSCAR SOMENTE OS IDS QUE ESTÃO NESSA VARIÁVEL
 
-	queries, err := models.GetAllMigrations(2)
+	queries, err := models.GetAllMigrations(2, 0)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -115,38 +105,26 @@ func UpdateTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// for x := 0; x < len(queries); x++ {
-	// 	stmt, err := dbdao.ExecMigration(queries[x])
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		fmt.Fprintf(w, "Erro ao executar update na migration executada")
-	// 		return
-	// 	}
-	// }
+	for x := 0; x < len(queries); x++ {
+		_, err = models.ExecMigration(queries[x], "teste")
+
+		if err != nil {
+			fmt.Println(err)
+			fmt.Fprintf(w, "Erro ao executar a migration")
+			return
+		}
+	}
 	fmt.Fprintf(w, "true")
 }
 
 func SaveMigration(w http.ResponseWriter, r *http.Request) {
-	// tsql :=
-	// 	`INSERT INTO migrations (
-	// 		name, query, created_at, executed_on_test, executed_on_production
-	// 	) VALUES (
-	// 		?, ?, ?, ?, ?
-	// 	);`
+	_, err := models.InsertMigration(r.FormValue("title"), r.FormValue("query"))
 
-	// stmt, _ := conn.Prepare(tsql)
-	// _, err = stmt.Exec(
-	// 	r.FormValue("title"),
-	// 	r.FormValue("query"),
-	// 	time.Now().Format("2006-01-02 15:04:05"),
-	// 	0,
-	// 	0,
-	// )
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	fmt.Fprintf(w, "Erro ao executar insert")
-	// 	return
-	// }
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Erro ao executar insert")
+		return
+	}
 
 	fmt.Fprintf(w, "true")
 }

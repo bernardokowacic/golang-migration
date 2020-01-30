@@ -8,7 +8,7 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-func ConnTest() (*sql.DB, error) {
+func connTest() (*sql.DB, error) {
 	dbMigration := os.Getenv("DB_TEST")
 
 	db, err := sql.Open("mssql", dbMigration)
@@ -23,4 +23,24 @@ func ConnTest() (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+func ExecOnTest(query string, args ...interface{}) (bool, error) {
+	db, err := connTest()
+	defer db.Close()
+
+	if err != nil {
+		fmt.Println("Error exec migration: ", err.Error())
+		return false, err
+	}
+
+	stmt, _ := db.Prepare(query)
+	_, errStmt := stmt.Exec(args...)
+
+	if errStmt != nil {
+		fmt.Println("Error exec migration: ", errStmt.Error())
+		return false, errStmt
+	}
+
+	return true, nil
 }
