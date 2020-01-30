@@ -2,6 +2,8 @@ package models
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-migration/dbdao"
@@ -70,4 +72,42 @@ func GetAllMigrations(filter uint16) ([]Migrations, error) {
 	}
 
 	return migrations, nil
+}
+
+func ExecMigration(migration string, ambiente string) (bool, error) {
+	if ambiente != "teste" || ambiente != "producao" {
+		return false, errors.New("o parametro ambiente deve ser teste ou producao")
+	}
+
+	db, err := dbdao.ConnTest()
+	defer db.Close()
+
+	if err != nil {
+		if err != nil {
+			fmt.Println("Error exec migration test: ", err.Error())
+			return false, err
+		}
+	}
+
+	stmt, _ := db.Prepare(migration)
+	_, errStmt := stmt.Exec()
+
+	if errStmt != nil {
+		if errStmt != nil {
+			fmt.Println("Error exec migration test: ", errStmt.Error())
+			return false, errStmt
+		}
+	}
+
+	updateStmt, _ := db.Prepare("update migrations set executed_on_test = 1 where id = ?")
+	_, errUpdate := updateStmt.Exec(
+		migration,
+	)
+	if errUpdate != nil {
+		fmt.Println(errUpdate)
+		return false, errUpdate
+	}
+
+	return true, nil
+
 }

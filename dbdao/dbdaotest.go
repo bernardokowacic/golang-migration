@@ -8,7 +8,7 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-func connTest() (*sql.DB, error) {
+func ConnTest() (*sql.DB, error) {
 	dbMigration := os.Getenv("DB_TEST")
 
 	db, err := sql.Open("mssql", dbMigration)
