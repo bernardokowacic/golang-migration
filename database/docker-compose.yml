@@ -13,6 +13,32 @@ services:
       - ACCEPT_EULA=Y
       - MSSQL_TCP_PORT=1433
     container_name: sql_server
+  sql_server_test:
+    image: mcr.microsoft.com/mssql/server:latest
+    #entrypoint: docker-entrypoint.sh --sql-mode='STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,TRADITIONAL,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'
+    ports:
+      - 1434:1433
+    networks:
+      - sql_server
+    environment:
+      - MSSQL_SA_PASSWORD=QWer1234*()
+      - MSSQL_PID=Developer
+      - ACCEPT_EULA=Y
+      - MSSQL_TCP_PORT=1433
+    container_name: sql_server_test
+  sql_server_prod:
+    image: mcr.microsoft.com/mssql/server:latest
+    #entrypoint: docker-entrypoint.sh --sql-mode='STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,TRADITIONAL,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'
+    ports:
+      - 1435:1433
+    networks:
+      - sql_server
+    environment:
+      - MSSQL_SA_PASSWORD=QWer1234*()
+      - MSSQL_PID=Developer
+      - ACCEPT_EULA=Y
+      - MSSQL_TCP_PORT=1433
+    container_name: sql_server_prod
 networks:
   sql_server:
     external:
