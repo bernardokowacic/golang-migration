@@ -9,16 +9,18 @@ import (
 	"github.com/golang-migration/dbdao"
 )
 
+// Migrations ... Cria estrutura dos registros de migration
 type Migrations struct {
-	Codigo                 uint
-	Name                   string
-	Query                  string
-	User                   sql.NullInt32
-	Created_at             string
-	Executed_on_test       bool
-	Executed_on_production bool
+	Codigo               uint
+	Name                 string
+	Query                string
+	User                 sql.NullInt32
+	CreatedAt            string
+	ExecutedOnTest       bool
+	ExecutedOnProduction bool
 }
 
+// GetAllMigrations ... Busca todas as migrations salvas no BD de migrations
 func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
 	query := "select * from migrations "
 
@@ -46,36 +48,37 @@ func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
 		var id uint
 		var name string
 		var query string
-		var user_id sql.NullInt32
-		var created_at string
-		var executed_on_test bool
-		var executed_on_production bool
+		var userID sql.NullInt32
+		var createdAt string
+		var executedOnTest bool
+		var executedOnProduction bool
 
 		// Get values from row.
-		err := rows.Scan(&id, &name, &query, &user_id, &created_at, &executed_on_test, &executed_on_production)
+		err := rows.Scan(&id, &name, &query, &userID, &createdAt, &executedOnTest, &executedOnProduction)
 		if err != nil {
 			return nil, nil
 		}
 
-		migrationDate, err := time.Parse("2006-01-02T15:04:05Z", created_at)
-		created_at = migrationDate.Format("02/01/2006 15:04")
+		migrationDate, err := time.Parse("2006-01-02T15:04:05Z", createdAt)
+		createdAt = migrationDate.Format("02/01/2006 15:04")
 
 		migrations = append(migrations, Migrations{
-			Codigo:                 id,
-			Name:                   name,
-			Query:                  query,
-			User:                   user_id,
-			Created_at:             created_at,
-			Executed_on_test:       executed_on_test,
-			Executed_on_production: executed_on_production,
+			Codigo:               id,
+			Name:                 name,
+			Query:                query,
+			User:                 userID,
+			CreatedAt:            createdAt,
+			ExecutedOnTest:       executedOnTest,
+			ExecutedOnProduction: executedOnProduction,
 		})
 	}
 
 	return migrations, nil
 }
 
+// ExecMigration ... Executa uma nova migration no ambiente de teste OU producao
 func ExecMigration(migration Migrations, ambiente string) (bool, error) {
-	if ambiente != "teste" || ambiente != "producao" {
+	if ambiente != "teste" && ambiente != "producao" {
 		return false, errors.New("o parametro ambiente deve ser teste ou producao")
 	}
 
@@ -84,7 +87,6 @@ func ExecMigration(migration Migrations, ambiente string) (bool, error) {
 	switch ambiente {
 	case "teste":
 		_, errMigration := dbdao.ExecOnTest(migration.Query)
-
 		if errMigration != nil {
 			fmt.Println("Error exec migration: ", errMigration.Error())
 			return false, errMigration
@@ -92,15 +94,14 @@ func ExecMigration(migration Migrations, ambiente string) (bool, error) {
 
 		doUpdate = doUpdate + "executed_on_test = 1 where id = ?"
 
-		_, errUpdate := dbdao.ExecOnTest(doUpdate, migration.Codigo)
-
+		_, errUpdate := dbdao.ExecOnMigration(doUpdate, migration.Codigo)
 		if errUpdate != nil {
-			fmt.Println("Error exec migration: ", errUpdate.Error())
+			fmt.Println("Error updating migration: ", errUpdate.Error())
 			return false, errUpdate
 		}
 
 	case "producao":
-		_, errMigration := dbdao.ExecOnProductiont(migration.Query)
+		_, errMigration := dbdao.ExecOnProduction(migration.Query)
 
 		if errMigration != nil {
 			fmt.Println("Error exec migration: ", errMigration.Error())
@@ -109,10 +110,10 @@ func ExecMigration(migration Migrations, ambiente string) (bool, error) {
 
 		doUpdate = doUpdate + "executed_on_production = 1 where id = ?"
 
-		_, errUpdate := dbdao.ExecOnProductiont(doUpdate, migration.Codigo)
+		_, errUpdate := dbdao.ExecOnMigration(doUpdate, migration.Codigo)
 
 		if errUpdate != nil {
-			fmt.Println("Error exec migration: ", errUpdate.Error())
+			fmt.Println("Error updating migration: ", errUpdate.Error())
 			return false, errUpdate
 		}
 	}
@@ -120,6 +121,7 @@ func ExecMigration(migration Migrations, ambiente string) (bool, error) {
 	return true, nil
 }
 
+// InsertMigration ... Insere uma nova migration no BD de migrations
 func InsertMigration(title string, query string) (bool, error) {
 	tsql :=
 		`INSERT INTO migrations (
@@ -129,7 +131,72 @@ func InsertMigration(title string, query string) (bool, error) {
 		);`
 
 	_, err := dbdao.ExecOnMigration(tsql, title, query, time.Now().Format("2006-01-02 15:04:05"), 0, 0)
+	if err != nil {
+		return false, err
+	}
 
+	return true, nil
+}
+
+// GetMigrationsByID ... Busca as migrations selecionadas na hora de executar no BD de teste
+func GetMigrationsByID(filter uint16, ids string) ([]Migrations, error) {
+	query := "select * from migrations "
+
+	switch filter {
+	case 1: // Executado somente em produção
+		query = query + " where executed_on_test = 0"
+	case 2: // Executado somente em teste
+		query = query + " where executed_on_production = 0"
+	}
+	query = query + " and id in (" + ids + ")"
+
+	query = query + " order by created_at desc"
+
+	rows, err := dbdao.Select(query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var migrations []Migrations
+	for rows.Next() {
+		var id uint
+		var name string
+		var query string
+		var userID sql.NullInt32
+		var createdAt string
+		var executedOnTest bool
+		var executedOnProduction bool
+
+		// Get values from row.
+		err := rows.Scan(&id, &name, &query, &userID, &createdAt, &executedOnTest, &executedOnProduction)
+		if err != nil {
+			return nil, nil
+		}
+
+		migrationDate, err := time.Parse("2006-01-02T15:04:05Z", createdAt)
+		createdAt = migrationDate.Format("02/01/2006 15:04")
+
+		migrations = append(migrations, Migrations{
+			Codigo:               id,
+			Name:                 name,
+			Query:                query,
+			User:                 userID,
+			CreatedAt:            createdAt,
+			ExecutedOnTest:       executedOnTest,
+			ExecutedOnProduction: executedOnProduction,
+		})
+	}
+
+	return migrations, nil
+}
+
+// DeleteMigration ... Executa query que exclui 1 registro do banco
+func DeleteMigration(id int) (bool, error) {
+	tsql := `DELETE FROM migrations WHERE id = ? and executed_on_test = 0 and executed_on_production = 0;`
+
+	_, err := dbdao.ExecOnMigration(tsql, id)
 	if err != nil {
 		return false, err
 	}

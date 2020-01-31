@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	// Esta aqui pq o go adiciona sozinho
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
@@ -25,6 +26,7 @@ func conn() (*sql.DB, error) {
 	return db, nil
 }
 
+// Select ... Executa queries de select
 func Select(query string, where ...interface{}) (*sql.Rows, error) {
 	db, err := conn()
 	defer db.Close()
@@ -44,6 +46,7 @@ func Select(query string, where ...interface{}) (*sql.Rows, error) {
 	return rows, nil
 }
 
+// ExecOnMigration ... Executa queries geradas
 func ExecOnMigration(query string, args ...interface{}) (bool, error) {
 	db, err := conn()
 	defer db.Close()

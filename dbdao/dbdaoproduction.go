@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	// Esta aqui pq o go adiciona sozinho
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
+// connProduction ... Abre conexao com banco de producao
 func connProduction() (*sql.DB, error) {
 	dbMigration := os.Getenv("DB_PRODUCTION")
 
@@ -25,7 +27,8 @@ func connProduction() (*sql.DB, error) {
 	return db, nil
 }
 
-func ExecOnProductiont(query string, args ...interface{}) (bool, error) {
+// ExecOnProduction ... executa queries no BD de producao
+func ExecOnProduction(query string, args ...interface{}) (bool, error) {
 	db, err := connProduction()
 	defer db.Close()
 
