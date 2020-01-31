@@ -351,10 +351,10 @@
             }
         }
 
-        function deleteMigration(id) {
+        function deleteMigration(index) {
             Swal.fire({
                 title: 'Você tem certeza?',
-                text: `Você irá excluir a migration "${obj[id].Name}". Essa ação é irreversível!`,
+                text: `Você irá excluir a migration "${obj[index].Name}". Essa ação é irreversível!`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -367,10 +367,7 @@
                 
                 $.ajax({
                     method: "DELETE",
-                    url: "/delete-migration",
-                    data: {
-                        id: obj[id].Codigo
-                    }
+                    url: "/delete-migration?id="+obj[index].Codigo
                 }).then((result) => {
                     if (result == "true") {
                         Swal.fire(
@@ -378,6 +375,9 @@
                             'Migration excluída com sucesso.',
                             'success'
                         )
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1100);
                     } else {
                         Swal.fire(
                             'Erro ao excluir migration.',

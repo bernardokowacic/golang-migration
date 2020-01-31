@@ -191,3 +191,15 @@ func GetMigrationsByID(filter uint16, ids string) ([]Migrations, error) {
 
 	return migrations, nil
 }
+
+// DeleteMigration ... Executa query que exclui 1 registro do banco
+func DeleteMigration(id int) (bool, error) {
+	tsql := `DELETE FROM migrations WHERE id = ? and executed_on_test = 0 and executed_on_production = 0;`
+
+	_, err := dbdao.ExecOnMigration(tsql, id)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}

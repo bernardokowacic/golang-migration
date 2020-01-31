@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -25,8 +26,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	if totalPages <= 0 {
 		totalPages = 1
 	}
-
-	fmt.Println(totalPages)
 
 	totalRegisters := 2
 
@@ -145,6 +144,19 @@ func SaveMigration(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Erro ao executar insert")
+		return
+	}
+
+	fmt.Fprintf(w, "true")
+}
+
+// DeleteMigration ... Exclui uma migratio que não tenha sido executada nem em teste e nem em produção
+func DeleteMigration(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query()["id"][0])
+	_, err := models.DeleteMigration(id)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Erro ao excluir migration")
 		return
 	}
 
