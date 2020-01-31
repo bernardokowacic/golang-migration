@@ -45,30 +45,30 @@
                 <ul class="list-group" style="height: 73vh; overflow-y: scroll;">
                     {{range $index, $element := .Queries}}
                     <li class="list-group-item list-group-item-action position-relative d-flex align-items-center" id="migration_{{$index}}" style="cursor: pointer; padding-right: 30px;">
-                        {{if $element.Executed_on_test}}
-                            <div title="Executado em teste" class="" style="padding-right: 5px; line-height: 15px;">
+                        {{if $element.ExecutedOnTest}}
+                            <div title="Executado em teste" style="padding-right: 5px; line-height: 15px;">
                                 <i class="fas fa-check" style="color: green"></i>
                             </div>
                         {{end}}
-                        {{if not $element.Executed_on_test}}
-                            <div title="Executado em teste" class="" style="padding-right: 5px; line-height: 15px;">
+                        {{if not $element.ExecutedOnTest}}
+                            <div title="Não executado em teste" style="padding-right: 5px; line-height: 15px;">
                                 <i class="fas fa-check" style="color: lightgray"></i>
                             </div>
                         {{end}}
-                        {{if $element.Executed_on_production}}
-                            <div title="Executado em produção" class="" style="padding-right: 5px; line-height: 15px;">
+                        {{if $element.ExecutedOnProduction}}
+                            <div title="Executado em produção" style="padding-right: 5px; line-height: 15px;">
                                 <i class="fas fa-check" style="color: green"></i>
                             </div>
                         {{end}}
-                        {{if not $element.Executed_on_production}}
-                            <div title="Executado em produção" class="" style="padding-right: 5px; line-height: 15px;">
+                        {{if not $element.ExecutedOnProduction}}
+                            <div title="Não executado em produção" style="padding-right: 5px; line-height: 15px;">
                                 <i class="fas fa-check" style="color: lightgray"></i>
                             </div>
                         {{end}}
                         <div onclick="selectMigration({{$index}})">
-                            {{$element.Created_at}} | {{$element.Name}}
+                            {{$element.CreatedAt}} | {{$element.Name}}
                         </div>
-                        {{if and (not $element.Executed_on_test) (not $element.Executed_on_production)}}
+                        {{if and (not $element.ExecutedOnTest) (not $element.ExecutedOnProduction)}}
                             <button type="button" title="Excluir" class="position-absolute btn btn-default" style="right: 5px; top: calc(50%-15px); padding: 6px; line-height: 15px;" onclick="deleteMigration({{$index}})">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
@@ -156,22 +156,22 @@
         let migrationsToRunTest = "";
         let migrationsToRunProduction = "";
         obj.forEach((item, index) => {
-            if (item.Executed_on_test == 0) {
+            if (item.ExecutedOnTest == 0) {
                 migrationsToRunTest  += `
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="${item.Codigo}" id="checkbox${item.Codigo}">
                         <label class="form-check-label" for="checkbox${item.Codigo}">
-                            ${item.Created_at} | ${item.Name}
+                            ${item.CreatedAt} | ${item.Name}
                         </label>
                     </div>
                 `;
             }
-            if (item.Executed_on_production == 0) {
+            if (item.ExecutedOnProduction == 0) {
                 migrationsToRunProduction  += `
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="${item.Codigo}" id="checkbox${item.Codigo}">
                         <label class="form-check-label" for="checkbox${item.Codigo}">
-                            ${item.Created_at} | ${item.Name}
+                            ${item.CreatedAt} | ${item.Name}
                         </label>
                     </div>
                 `;
@@ -193,7 +193,7 @@
         function runOnTest() {
             let checkedMigrations = [];
             Swal.fire({
-                title: 'Selecione as migrations que deseja executar',
+                title: 'Selecione as migrations que deseja executar em TESTE',
                 html: "Você irá atualizar o banco de dados de TESTE com todas as migrations ainda não executadas! <br><br>" + migrationsToRunTest,
                 focusConfirm: false,
                 icon: 'warning',
@@ -203,13 +203,13 @@
                 confirmButtonText: 'Sim, pode confiar!',
                 preConfirm: () => {
                     obj.forEach((item, index) => {
-                        if (document.getElementById(`checkbox${item.Codigo}`).checked) {
+                        if (document.getElementById(`checkbox${item.Codigo}`) && document.getElementById(`checkbox${item.Codigo}`).checked) {
                             checkedMigrations.push(item.Codigo.toString());
                         }
                     });
                 }
             }).then((response) => {
-                if(response.dismiss == 'cancel'){
+                if(response.dismiss){
                     return false;
                 }
                 $.ajax({
@@ -246,7 +246,7 @@
         function runOnProduction() {
             let checkedMigrations = [];
             Swal.fire({
-                title: 'Selecione as migrations que deseja executar',
+                title: 'Selecione as migrations que deseja executar em PRODUÇÃO',
                 html: "Você irá atualizar o banco de dados de PRODUÇÃO com todas as migrations ainda não executadas! <br><br>" + migrationsToRunProduction,
                 focusConfirm: false,
                 icon: 'warning',
@@ -255,7 +255,7 @@
                 cancelButtonColor: '#d33',
                 confirmButtonText: 'Sim, pode confiar!',
             }).then((response) => {
-                if(response.dismiss == 'cancel'){
+                if(response.dismiss){
                     return false;
                 }
                 $.ajax({
@@ -300,7 +300,7 @@
                     cancelButtonColor: '#d33',
                     confirmButtonText: 'Sim, pode confiar!'
                 }).then((response) => {
-                    if(response.dismiss == 'cancel'){
+                    if(response.dismiss){
                         return false;
                     }
                     
@@ -354,7 +354,7 @@
                 cancelButtonColor: '#d33',
                 confirmButtonText: 'Sim, pode deletar!'
             }).then((response) => {
-                if(response.dismiss == 'cancel'){
+                if(response.dismiss){
                     return false;
                 }
                 

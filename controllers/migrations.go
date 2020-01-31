@@ -13,6 +13,7 @@ import (
 
 var temp = template.Must(template.ParseGlob("templates/*.html"))
 
+// Index ... Carrega homepage
 func Index(w http.ResponseWriter, r *http.Request) {
 	queries, err := models.GetAllMigrations(0, 0)
 	if err != nil {
@@ -58,6 +59,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateProduction ... Executa migration no BD de producao
 func UpdateProduction(w http.ResponseWriter, r *http.Request) {
 	queries, err := models.GetAllMigrations(2, 0)
 	if err != nil {
@@ -83,22 +85,28 @@ func UpdateProduction(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "true")
 }
 
+// UpdateTest ... Executa migration no BD de teste
 func UpdateTest(w http.ResponseWriter, r *http.Request) {
-	var selectedMigrations []string //{ value string }
+	var selectedMigrations []string
 	err := json.Unmarshal([]byte(r.FormValue("migrationsToRun")), &selectedMigrations)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Fprintf(w, "erro ao receber queries à serem executadas")
 		return
 	}
+	if len(selectedMigrations) < 1 {
+		fmt.Println("Nenhuma migration selecionada")
+		fmt.Fprintf(w, "Nenhuma migration selecionada")
+		return
+	}
 	migrationsToRunIDs := strings.Join(selectedMigrations[:], ",")
-	fmt.Println(migrationsToRunIDs) // FALTA AJUSTAR O SELECT PARA BUSCAR SOMENTE OS IDS QUE ESTÃO NESSA VARIÁVEL
 
-	queries, err := models.GetAllMigrations(2, 0)
+	queries, err := models.GetMigrationsByID(1, migrationsToRunIDs)
 	if err != nil {
 		fmt.Println(err)
 	}
-
+	fmt.Println(queries)
+	return
 	if len(queries) < 1 {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Todas as migrations já foram rodadas no BD de teste")
@@ -117,6 +125,7 @@ func UpdateTest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "true")
 }
 
+// SaveMigration ... Salva nova migration
 func SaveMigration(w http.ResponseWriter, r *http.Request) {
 	_, err := models.InsertMigration(r.FormValue("title"), r.FormValue("query"))
 
