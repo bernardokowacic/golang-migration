@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	// Esta aqui pq o go adiciona sozinho
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
+// connTest ... Abre conexao com banco de teste
 func connTest() (*sql.DB, error) {
 	dbMigration := os.Getenv("DB_TEST")
 
@@ -25,6 +27,7 @@ func connTest() (*sql.DB, error) {
 	return db, nil
 }
 
+// ExecOnTest ... executa queries no BD de teste
 func ExecOnTest(query string, args ...interface{}) (bool, error) {
 	db, err := connTest()
 	defer db.Close()

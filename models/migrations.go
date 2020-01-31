@@ -87,35 +87,33 @@ func ExecMigration(migration Migrations, ambiente string) (bool, error) {
 	switch ambiente {
 	case "teste":
 		_, errMigration := dbdao.ExecOnTest(migration.Query)
-
 		if errMigration != nil {
 			fmt.Println("Error exec migration: ", errMigration.Error())
 			return false, errMigration
 		}
 
-		doUpdate = doUpdate + "executed_on_test = 1 where id in (?)"
+		doUpdate = doUpdate + "executed_on_test = 1 where id = ?"
 
-		_, errUpdate := dbdao.ExecOnTest(doUpdate, migration.Codigo)
-
+		_, errUpdate := dbdao.ExecOnMigration(doUpdate, migration.Codigo)
 		if errUpdate != nil {
-			fmt.Println("Error exec migration: ", errUpdate.Error())
+			fmt.Println("Error updating migration: ", errUpdate.Error())
 			return false, errUpdate
 		}
 
 	case "producao":
-		_, errMigration := dbdao.ExecOnProductiont(migration.Query)
+		_, errMigration := dbdao.ExecOnProduction(migration.Query)
 
 		if errMigration != nil {
 			fmt.Println("Error exec migration: ", errMigration.Error())
 			return false, errMigration
 		}
 
-		doUpdate = doUpdate + "executed_on_production = 1 where id in (?)"
+		doUpdate = doUpdate + "executed_on_production = 1 where id = ?"
 
-		_, errUpdate := dbdao.ExecOnProductiont(doUpdate, migration.Codigo)
+		_, errUpdate := dbdao.ExecOnMigration(doUpdate, migration.Codigo)
 
 		if errUpdate != nil {
-			fmt.Println("Error exec migration: ", errUpdate.Error())
+			fmt.Println("Error updating migration: ", errUpdate.Error())
 			return false, errUpdate
 		}
 	}
@@ -133,7 +131,6 @@ func InsertMigration(title string, query string) (bool, error) {
 		);`
 
 	_, err := dbdao.ExecOnMigration(tsql, title, query, time.Now().Format("2006-01-02 15:04:05"), 0, 0)
-
 	if err != nil {
 		return false, err
 	}

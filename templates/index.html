@@ -254,6 +254,13 @@
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
                 confirmButtonText: 'Sim, pode confiar!',
+                preConfirm: () => {
+                    obj.forEach((item, index) => {
+                        if (document.getElementById(`checkbox${item.Codigo}`) && document.getElementById(`checkbox${item.Codigo}`).checked) {
+                            checkedMigrations.push(item.Codigo.toString());
+                        }
+                    });
+                }
             }).then((response) => {
                 if(response.dismiss){
                     return false;

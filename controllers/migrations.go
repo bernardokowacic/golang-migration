@@ -61,7 +61,21 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 // UpdateProduction ... Executa migration no BD de producao
 func UpdateProduction(w http.ResponseWriter, r *http.Request) {
-	queries, err := models.GetAllMigrations(2, 0)
+	var selectedMigrations []string
+	err := json.Unmarshal([]byte(r.FormValue("migrationsToRun")), &selectedMigrations)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "erro ao receber queries à serem executadas")
+		return
+	}
+	if len(selectedMigrations) < 1 {
+		fmt.Println("Nenhuma migration selecionada")
+		fmt.Fprintf(w, "Nenhuma migration selecionada")
+		return
+	}
+	migrationsToRunIDs := strings.Join(selectedMigrations[:], ",")
+
+	queries, err := models.GetMigrationsByID(2, migrationsToRunIDs)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -105,8 +119,7 @@ func UpdateTest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(queries)
-	return
+
 	if len(queries) < 1 {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Todas as migrations já foram rodadas no BD de teste")
