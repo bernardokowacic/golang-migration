@@ -39,10 +39,10 @@
         </div>        
     </nav>
 
-    <div class="container" style="margin-bottom: 30px; margin-top: 30px;">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-12 col-sm-6 col-md-4">
-                <ul class="list-group" style="height: 73vh; overflow-y: scroll;">
+                <ul class="list-group" style="height: calc(100vh - 94px); overflow-y: auto;">
                     {{range $index, $element := .Queries}}
                     <li class="list-group-item list-group-item-action position-relative d-flex align-items-center" id="migration_{{$index}}" style="cursor: pointer; padding-right: 30px;">
                         {{if $element.ExecutedOnTest}}
@@ -69,24 +69,24 @@
                             {{$element.CreatedAt}} | {{$element.Name}}
                         </div>
                         {{if and (not $element.ExecutedOnTest) (not $element.ExecutedOnProduction)}}
-                            <button type="button" title="Excluir" class="position-absolute btn btn-default" style="right: 5px; top: calc(50%-15px); padding: 6px; line-height: 15px;" onclick="deleteMigration({{$index}})">
+                            <button type="button" title="Excluir" class="position-absolute btn btn-default" style="right: 5px; top: calc(50%-15px); padding: 4px; line-height: 15px;" onclick="deleteMigration({{$index}})">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         {{end}}
                     </li>
                     {{end}}
-                    <nav aria-label="Page navigation example">
-                        <ul class="pagination">
-                            <li class="page-item col-6 p-0 text-center"><a class="page-link" href="#{{.Previous_page}}"><i class="fas fa-chevron-left"></i></a></li>
-                            <li class="page-item col-6 p-0 text-center"><a class="page-link" href="#{{.Next_page}}"><i class="fas fa-chevron-right"></i></a></li>
-                        </ul>
-                    </nav>
                 </ul>
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        <li class="page-item col-6 p-0 text-center"><a class="page-link" href="#{{.Previous_page}}"><i class="fas fa-chevron-left"></i></a></li>
+                        <li class="page-item col-6 p-0 text-center"><a class="page-link" href="#{{.Next_page}}"><i class="fas fa-chevron-right"></i></a></li>
+                    </ul>
+                </nav>
             </div>
             <div class="col-12 col-sm-6 col-md-8">
-                <input type="text" max="250" id="migration-name" placeholder="Nome da migration" class="w-100 mb-2" class="form-control">
+                <input type="text" max="250" id="migration-name" placeholder="Nome da migration" class="w-100" style="margin-bottom: 10px;" class="form-control">
                 <textarea id="print-query" class="form-control" name="query" id="query"
-                    style="width: 100%; height: 73vh; overflow-y: scroll; resize: none;"
+                    style="width: 100%; overflow-y: scroll; resize: none;"
                     placeholder="Insira a query aqui"></textarea>
             </div>
         </div>
@@ -115,6 +115,14 @@
 
         .selected{
             background-color: #f8f9fa;
+        }
+
+        .CodeMirror{
+            height: calc(100vh - 96px)
+        }
+
+        .pagination{
+            margin: 0px;
         }
         
         @media screen and (max-width: 768px) {
