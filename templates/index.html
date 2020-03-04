@@ -45,7 +45,7 @@
             <div class="col-12 col-sm-6 col-md-3">
                 <ul class="list-group" style="height: calc(100vh - 309px); overflow-y: auto;">
                     {{range $index, $element := .Queries}}
-                    <li class="list-group-item list-group-item-action position-relative d-flex align-items-center" id="migration_{{$index}}" style="cursor: pointer; padding-right: 30px;">
+                    <li class="list-group-item list-group-item-action position-relative d-flex align-items-center" id="migration_{{$index}}" style="cursor: pointer; padding-right: 30px;" onclick="selectMigration({{$index}})">
                         {{if $element.ExecutedOnTest}}
                             <div title="Executado em teste" style="padding-right: 5px; line-height: 15px;">
                                 <i class="fas fa-check" style="color: green"></i>
@@ -66,7 +66,7 @@
                                 <i class="fas fa-check" style="color: lightgray"></i>
                             </div>
                         {{end}}
-                        <div onclick="selectMigration({{$index}})">
+                        <div>
                             {{$element.CreatedAt}} | {{$element.Name}}
                         </div>
                         {{if and (not $element.ExecutedOnTest) (not $element.ExecutedOnProduction)}}
@@ -195,8 +195,7 @@
                 method: "GET",
                 url: "/show-logs?migrationID="+obj[migrationId].Codigo
             }).then((result) => {
-                logs = JSON.parse(result);
-                logs.forEach((item, index) => {
+                result.forEach((item, index) => {
                     $("#logs-list").append(`
                         <li class="list-group-item text-danger log-item">
                             ${item.CreatedAt} - ${item.Description}

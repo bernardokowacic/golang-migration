@@ -192,14 +192,17 @@ func DeleteMigration(w http.ResponseWriter, r *http.Request) {
 // ShowLogs ... Lista todos os logs da migrations selecionada
 func ShowLogs(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.URL.Query()["migrationID"][0])
+
 	logs, err := models.GetMigrationLogs(id)
+
 	if err != nil {
 		fmt.Println(err)
-		fmt.Fprintf(w, "Erro ao excluir migration")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	jsonLogs, _ := json.Marshal(logs)
 
-	fmt.Fprintf(w, string(jsonLogs))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonLogs)
 }

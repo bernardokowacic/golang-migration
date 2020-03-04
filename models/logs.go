@@ -27,7 +27,7 @@ func GetMigrationLogs(migrationID int) ([]Logs, error) {
 
 	defer rows.Rows.Close()
 
-	var logs []Logs
+	logs := []Logs{}
 	for rows.Rows.Next() {
 		var id uint
 		var description string
