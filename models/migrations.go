@@ -21,10 +21,10 @@ type Migrations struct {
 }
 
 // GetAllMigrations ... Busca todas as migrations salvas no BD de migrations
-func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
+func GetAllMigrations(filter uint16, page uint16, registersPerPage uint32) ([]Migrations, error) {
 	query := "select * from migrations "
 
-	pagination := fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT 15 ROWS ONLY", page)
+	pagination := fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", page, registersPerPage)
 
 	switch filter {
 	case 1: // Executado somente em produção
@@ -82,7 +82,7 @@ func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
 // ExecMigration ... Executa uma nova migration no ambiente de teste OU producao
 func ExecMigration(migration Migrations, ambiente string) (bool, error) {
 	if ambiente != "teste" && ambiente != "producao" {
-		return false, errors.New("o parametro ambiente deve ser teste ou producao")
+		return false, errors.New("o parametro ambiente deve ser 'teste' ou 'producao'")
 	}
 
 	doUpdate := "update migrations set "

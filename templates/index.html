@@ -134,6 +134,10 @@
         .pagination{
             margin: 0px;
         }
+
+        .page-link{
+            cursor: pointer;
+        }
         
         @media screen and (max-width: 768px) {
             .input-group, .btn-save-query{
@@ -145,6 +149,42 @@
     <script>
         const obj = {{.Json }}; // Retorna todas as migrations já executadas
         const tables = {{.Columns_list }}; // Retorna todas as tabelas e colunas do BD
+        history.pushState('', '', '#{{.Current_page}}')
+
+        // Monta textarea do tipo SQL
+        var editor = CodeMirror.fromTextArea(document.querySelector('#print-query'), {
+            lineNumbers: true,
+            mode: "text/x-sql",
+            extraKeys: {"Ctrl-Space": "autocomplete"},
+        });
+        CodeMirror.commands.autocomplete = function(cm) {
+            CodeMirror.showHint(cm, CodeMirror.hint.sql, {tables: tables});
+        };
+
+        let migrationsToRunTest = "";
+        let migrationsToRunProduction = "";
+        obj.forEach((item, index) => {
+            if (item.ExecutedOnTest == 0) {
+                migrationsToRunTest  += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="${item.Codigo}" id="checkbox${item.Codigo}">
+                        <label class="form-check-label" for="checkbox${item.Codigo}">
+                            ${item.CreatedAt} | ${item.Name}
+                        </label>
+                    </div>
+                `;
+            }
+            if (item.ExecutedOnProduction == 0) {
+                migrationsToRunProduction  += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="${item.Codigo}" id="checkbox${item.Codigo}">
+                        <label class="form-check-label" for="checkbox${item.Codigo}">
+                            ${item.CreatedAt} | ${item.Name}
+                        </label>
+                    </div>
+                `;
+            }
+        });
 
         function selectMigration(migrationId) {
             document.querySelector('#migration-name').value = obj[migrationId].Name;
@@ -182,43 +222,6 @@
             button.classList.remove('btn-outline-success')
             button.classList.add('btn-outline-danger')
         }
-
-        // Monta textarea do tipo SQL
-        var editor = CodeMirror.fromTextArea(document.querySelector('#print-query'), {
-            lineNumbers: true,
-            mode: "text/x-sql",
-            extraKeys: {"Ctrl-Space": "autocomplete"},
-        });
-        CodeMirror.commands.autocomplete = function(cm) {
-            CodeMirror.showHint(cm, CodeMirror.hint.sql, { 
-                tables: tables
-            } );
-        };
-
-        let migrationsToRunTest = "";
-        let migrationsToRunProduction = "";
-        obj.forEach((item, index) => {
-            if (item.ExecutedOnTest == 0) {
-                migrationsToRunTest  += `
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="${item.Codigo}" id="checkbox${item.Codigo}">
-                        <label class="form-check-label" for="checkbox${item.Codigo}">
-                            ${item.CreatedAt} | ${item.Name}
-                        </label>
-                    </div>
-                `;
-            }
-            if (item.ExecutedOnProduction == 0) {
-                migrationsToRunProduction  += `
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="${item.Codigo}" id="checkbox${item.Codigo}">
-                        <label class="form-check-label" for="checkbox${item.Codigo}">
-                            ${item.CreatedAt} | ${item.Name}
-                        </label>
-                    </div>
-                `;
-            }
-        });
 
         // Verifica qual opção de banco de dados foi selecionada
         function executeQuery() {
