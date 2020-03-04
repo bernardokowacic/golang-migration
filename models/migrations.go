@@ -10,6 +10,11 @@ import (
 )
 
 type Migrations struct {
+	SQL   dbdao.QueryPaginate
+	Items []ItemsMigration
+}
+
+type ItemsMigration struct {
 	Codigo                 uint
 	Name                   string
 	Query                  string
@@ -19,30 +24,32 @@ type Migrations struct {
 	Executed_on_production bool
 }
 
-func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
-	query := "select * from migrations "
+func GetAllMigrations(filter uint16, page int) (Migrations, error) {
+	var objQuery dbdao.ReceivedQuery
+	var appendResult Migrations
+	objQuery.Select = "select * from migrations"
+	var err error
 
-	pagination := fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT 15 ROWS ONLY", page)
+	// pagination := fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT 15 ROWS ONLY", page)
 
 	switch filter {
 	case 1: // Executado somente em produção
-		query = query + " where executed_on_test = 0"
+		objQuery.Where = "where executed_on_test = 0"
 	case 2: // Executado somente em teste
-		query = query + " where executed_on_production = 0"
+		objQuery.Where = "where executed_on_production = 0"
 	}
 
-	query = query + " order by created_at desc"
-	query = query + pagination
+	objQuery.Order = "order by executed_on_production asc, executed_on_test asc, created_at desc"
+	// query = query + pagination
 
-	rows, err := dbdao.Select(query)
+	appendResult.SQL, err = dbdao.Select(objQuery, page)
 	if err != nil {
-		return nil, err
+		return Migrations{}, err
 	}
 
-	defer rows.Close()
+	defer appendResult.SQL.Rows.Close()
 
-	var migrations []Migrations
-	for rows.Next() {
+	for appendResult.SQL.Rows.Next() {
 		var id uint
 		var name string
 		var query string
@@ -52,15 +59,15 @@ func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
 		var executed_on_production bool
 
 		// Get values from row.
-		err := rows.Scan(&id, &name, &query, &user_id, &created_at, &executed_on_test, &executed_on_production)
+		err := appendResult.SQL.Rows.Scan(&id, &name, &query, &user_id, &created_at, &executed_on_test, &executed_on_production)
 		if err != nil {
-			return nil, nil
+			return Migrations{}, nil
 		}
 
 		migrationDate, err := time.Parse("2006-01-02T15:04:05Z", created_at)
 		created_at = migrationDate.Format("02/01/2006 15:04")
 
-		migrations = append(migrations, Migrations{
+		appendResult.Items = append(appendResult.Items, ItemsMigration{
 			Codigo:                 id,
 			Name:                   name,
 			Query:                  query,
@@ -71,10 +78,10 @@ func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
 		})
 	}
 
-	return migrations, nil
+	return appendResult, nil
 }
 
-func ExecMigration(migration Migrations, ambiente string) (bool, error) {
+func ExecMigration(migration ItemsMigration, ambiente string) (bool, error) {
 	if ambiente != "teste" || ambiente != "producao" {
 		return false, errors.New("o parametro ambiente deve ser teste ou producao")
 	}

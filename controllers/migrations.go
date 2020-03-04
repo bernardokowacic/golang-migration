@@ -19,7 +19,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	totalPagesFloat := float64(len(queries) / 15)
+	totalPagesFloat := float64(len(queries.Items) / 15)
 	totalPages := uint32(math.Ceil(totalPagesFloat))
 	if totalPages <= 0 {
 		totalPages = 1
@@ -31,7 +31,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 	var currentPage uint32 = 1
 
-	transformJSON, _ := json.Marshal(queries)
+	transformJSON, _ := json.Marshal(queries.Items)
 
 	var nextPage uint32 = totalPages
 	if currentPage < totalPages {
@@ -48,7 +48,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		"Current_page":    currentPage,
 		"Next_page":       nextPage,
 		"Previous_page":   previousPage,
-		"Queries":         queries,
+		"Queries":         queries.Items,
 		"Json":            string(transformJSON),
 	}
 
@@ -64,14 +64,14 @@ func UpdateProduction(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	if len(queries) < 1 {
+	if len(queries.Items) < 1 {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Todas as migrations já foram rodadas no BD de produção")
 		return
 	}
 
-	for x := 0; x < len(queries); x++ {
-		_, err = models.ExecMigration(queries[x], "producao")
+	for x := 0; x < len(queries.Items); x++ {
+		_, err = models.ExecMigration(queries.Items[x], "producao")
 
 		if err != nil {
 			fmt.Println(err)
@@ -99,14 +99,14 @@ func UpdateTest(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	if len(queries) < 1 {
+	if len(queries.Items) < 1 {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Todas as migrations já foram rodadas no BD de teste")
 		return
 	}
 
-	for x := 0; x < len(queries); x++ {
-		_, err = models.ExecMigration(queries[x], "teste")
+	for x := 0; x < len(queries.Items); x++ {
+		_, err = models.ExecMigration(queries.Items[x], "teste")
 
 		if err != nil {
 			fmt.Println(err)
