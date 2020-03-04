@@ -20,20 +20,6 @@ type Migrations struct {
 	ExecutedOnProduction bool
 }
 
-// Columns ... Cria estrutura das colunas do BD
-type Columns struct {
-	Name string
-}
-
-// Tables ... Cria estrutura das tabelas do BD
-type Tables struct {
-	Name    string
-	Columns []Columns
-}
-
-// // Tables ... Cria estrutura das tabelas do BD
-// type Tables map[string]Columns
-
 // GetAllMigrations ... Busca todas as migrations salvas no BD de migrations
 func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
 	query := "select * from migrations "
@@ -70,10 +56,13 @@ func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
 		// Get values from row.
 		err := rows.Scan(&id, &name, &query, &userID, &createdAt, &executedOnTest, &executedOnProduction)
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 
 		migrationDate, err := time.Parse("2006-01-02T15:04:05Z", createdAt)
+		if err != nil {
+			return nil, err
+		}
 		createdAt = migrationDate.Format("02/01/2006 15:04")
 
 		migrations = append(migrations, Migrations{

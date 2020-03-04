@@ -41,9 +41,9 @@
     </nav>
 
     <div class="container-fluid">
-        <div class="row">
+        <div class="row" style="padding-bottom: 15px;">
             <div class="col-12 col-sm-6 col-md-3">
-                <ul class="list-group" style="height: calc(100vh - 94px); overflow-y: auto;">
+                <ul class="list-group" style="height: calc(100vh - 309px); overflow-y: auto;">
                     {{range $index, $element := .Queries}}
                     <li class="list-group-item list-group-item-action position-relative d-flex align-items-center" id="migration_{{$index}}" style="cursor: pointer; padding-right: 30px;">
                         {{if $element.ExecutedOnTest}}
@@ -91,6 +91,13 @@
                     placeholder="Insira a query aqui"></textarea>
             </div>
         </div>
+        <div class="row">
+            <div class="col-12">
+                <ul class="list-group" style="height: 200px; overflow: auto; border-top: 1px solid #dee2e6;" id="logs-list">
+                    <h6>Logs:</h6>
+                </ul>
+            </div>
+        </div>
     </div>
     <footer>
         <script src="https://code.jquery.com/jquery-3.4.1.min.js"
@@ -121,7 +128,7 @@
         }
 
         .CodeMirror{
-            height: calc(100vh - 96px)
+            height: calc(100vh - 311px)
         }
 
         .pagination{
@@ -136,13 +143,29 @@
     </style>
 
     <script>
-        const obj = {{.Json }} // Retorna todas as migrations já executadas
-        const tables = {{.Columns_list }} // Retorna todas as migrations já executadas
-        console.log(tables);
+        const obj = {{.Json }}; // Retorna todas as migrations já executadas
+        const tables = {{.Columns_list }}; // Retorna todas as tabelas e colunas do BD
 
         function selectMigration(migrationId) {
             document.querySelector('#migration-name').value = obj[migrationId].Name;
             editor.setValue(obj[migrationId].Query);
+            $(".log-item").remove();
+
+            $.ajax({
+                method: "GET",
+                url: "/show-logs?migrationID="+obj[migrationId].Codigo
+            }).then((result) => {
+                logs = JSON.parse(result);
+                logs.forEach((item, index) => {
+                    $("#logs-list").append(`
+                        <li class="list-group-item text-danger log-item">
+                            ${item.CreatedAt} - ${item.Description}
+                        </li>
+                    `);
+                });
+            }).catch(function (jqXHR, textStatus, msg) {
+                console.error(msg);
+            });
 
             $('.list-group-item').removeClass('selected');
             $('#migration_'+migrationId).addClass('selected');

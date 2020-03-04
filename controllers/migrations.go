@@ -43,12 +43,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		previousPage = currentPage - 1
 	}
 
-	// tablesList, err := models.ShowAllTables()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// jsonTablesList, _ := json.Marshal(tablesList)
-
 	columnsList, err := models.ShowAllColumns()
 	if err != nil {
 		fmt.Println(err)
@@ -61,9 +55,8 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		"Next_page":       nextPage,
 		"Previous_page":   previousPage,
 		"Queries":         queries,
-		// "tables_list":     string(jsonTablesList),
-		"Columns_list": string(jsonColumnsList),
-		"Json":         string(transformJSON),
+		"Columns_list":    string(jsonColumnsList),
+		"Json":            string(transformJSON),
 	}
 
 	err2 := temp.ExecuteTemplate(w, "Index", data)
@@ -103,6 +96,13 @@ func UpdateProduction(w http.ResponseWriter, r *http.Request) {
 		_, err = models.ExecMigration(queries[x], "producao")
 
 		if err != nil {
+			_, errLog := models.CreateMigrationLog(queries[x].Codigo, "produção - "+err.Error())
+			if errLog != nil {
+				fmt.Println(err)
+				fmt.Fprintf(w, "Erro ao criar log de erro da migration")
+				return
+			}
+
 			fmt.Println(err)
 			fmt.Fprintf(w, "Erro ao executar a migration")
 			return
@@ -141,8 +141,13 @@ func UpdateTest(w http.ResponseWriter, r *http.Request) {
 
 	for x := 0; x < len(queries); x++ {
 		_, err = models.ExecMigration(queries[x], "teste")
-
 		if err != nil {
+			_, errLog := models.CreateMigrationLog(queries[x].Codigo, "teste - "+err.Error())
+			if errLog != nil {
+				fmt.Println(err)
+				fmt.Fprintf(w, "Erro ao criar log de erro da migration")
+				return
+			}
 			fmt.Println(err)
 			fmt.Fprintf(w, "Erro ao executar a migration")
 			return
@@ -154,7 +159,6 @@ func UpdateTest(w http.ResponseWriter, r *http.Request) {
 // SaveMigration ... Salva nova migration
 func SaveMigration(w http.ResponseWriter, r *http.Request) {
 	_, err := models.InsertMigration(r.FormValue("title"), r.FormValue("query"))
-
 	if err != nil {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Erro ao executar insert")
@@ -167,12 +171,35 @@ func SaveMigration(w http.ResponseWriter, r *http.Request) {
 // DeleteMigration ... Exclui uma migratio que não tenha sido executada nem em teste e nem em produção
 func DeleteMigration(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.URL.Query()["id"][0])
-	_, err := models.DeleteMigration(id)
+
+	_, err := models.DeleteMigrationLog(id)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintf(w, "Erro ao excluir logs da migration")
+		return
+	}
+
+	_, err2 := models.DeleteMigration(id)
+	if err2 != nil {
+		fmt.Println(err2)
+		fmt.Fprintf(w, "Erro ao excluir migration")
+		return
+	}
+
+	fmt.Fprintf(w, "true")
+}
+
+// ShowLogs ... Lista todos os logs da migrations selecionada
+func ShowLogs(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query()["migrationID"][0])
+	logs, err := models.GetMigrationLogs(id)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Erro ao excluir migration")
 		return
 	}
 
-	fmt.Fprintf(w, "true")
+	jsonLogs, _ := json.Marshal(logs)
+
+	fmt.Fprintf(w, string(jsonLogs))
 }
