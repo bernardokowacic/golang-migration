@@ -16,22 +16,24 @@ type Logs struct {
 
 // GetMigrationLogs ... Retorna todos os logs de uma migration
 func GetMigrationLogs(migrationID int) ([]Logs, error) {
-	query := fmt.Sprintf("select id, description, created_at from logs where migration_id = %d", migrationID)
+	var objQuery dbdao.ReceivedQuery
 
-	rows, err := dbdao.Select(query)
+	objQuery.Select = fmt.Sprintf("select id, description, created_at from logs where migration_id = %d", migrationID)
+
+	rows, err := dbdao.Select(objQuery, -1)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer rows.Rows.Close()
 
 	var logs []Logs
-	for rows.Next() {
+	for rows.Rows.Next() {
 		var id uint
 		var description string
 		var createdAt string
 
-		err := rows.Scan(&id, &description, &createdAt)
+		err := rows.Rows.Scan(&id, &description, &createdAt)
 		if err != nil {
 			return nil, err
 		}

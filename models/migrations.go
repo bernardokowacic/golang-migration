@@ -11,6 +11,11 @@ import (
 
 // Migrations ... Cria estrutura dos registros de migration
 type Migrations struct {
+	SQL   dbdao.QueryPaginate
+	Items []ItemsMigration
+}
+
+type ItemsMigration struct {
 	Codigo               uint
 	Name                 string
 	Query                string
@@ -21,30 +26,32 @@ type Migrations struct {
 }
 
 // GetAllMigrations ... Busca todas as migrations salvas no BD de migrations
-func GetAllMigrations(filter uint16, page uint16, registersPerPage uint32) ([]Migrations, error) {
-	query := "select * from migrations "
+func GetAllMigrations(filter uint16, page int) (Migrations, error) {
+	var objQuery dbdao.ReceivedQuery
+	var appendResult Migrations
+	objQuery.Select = "select * from migrations"
+	var err error
 
-	pagination := fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", page, registersPerPage)
+	// pagination := fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT 15 ROWS ONLY", page)
 
 	switch filter {
 	case 1: // Executado somente em produção
-		query = query + " where executed_on_test = 0"
+		objQuery.Where = "where executed_on_test = 0"
 	case 2: // Executado somente em teste
-		query = query + " where executed_on_production = 0"
+		objQuery.Where = "where executed_on_production = 0"
 	}
 
-	query = query + " order by created_at desc"
-	query = query + pagination
+	objQuery.Order = "order by executed_on_production asc, executed_on_test asc, created_at desc"
+	// query = query + pagination
 
-	rows, err := dbdao.Select(query)
+	appendResult.SQL, err = dbdao.Select(objQuery, page)
 	if err != nil {
-		return nil, err
+		return Migrations{}, err
 	}
 
-	defer rows.Close()
+	defer appendResult.SQL.Rows.Close()
 
-	var migrations []Migrations
-	for rows.Next() {
+	for appendResult.SQL.Rows.Next() {
 		var id uint
 		var name string
 		var query string
@@ -54,18 +61,18 @@ func GetAllMigrations(filter uint16, page uint16, registersPerPage uint32) ([]Mi
 		var executedOnProduction bool
 
 		// Get values from row.
-		err := rows.Scan(&id, &name, &query, &userID, &createdAt, &executedOnTest, &executedOnProduction)
+		err := appendResult.SQL.Rows.Scan(&id, &name, &query, &userID, &createdAt, &executedOnTest, &executedOnProduction)
 		if err != nil {
-			return nil, err
+			return Migrations{}, err
 		}
 
 		migrationDate, err := time.Parse("2006-01-02T15:04:05Z", createdAt)
 		if err != nil {
-			return nil, err
+			return Migrations{}, err
 		}
 		createdAt = migrationDate.Format("02/01/2006 15:04")
 
-		migrations = append(migrations, Migrations{
+		appendResult.Items = append(appendResult.Items, ItemsMigration{
 			Codigo:               id,
 			Name:                 name,
 			Query:                query,
@@ -76,11 +83,11 @@ func GetAllMigrations(filter uint16, page uint16, registersPerPage uint32) ([]Mi
 		})
 	}
 
-	return migrations, nil
+	return appendResult, nil
 }
 
 // ExecMigration ... Executa uma nova migration no ambiente de teste OU producao
-func ExecMigration(migration Migrations, ambiente string) (bool, error) {
+func ExecMigration(migration ItemsMigration, ambiente string) (bool, error) {
 	if ambiente != "teste" && ambiente != "producao" {
 		return false, errors.New("o parametro ambiente deve ser 'teste' ou 'producao'")
 	}
@@ -142,28 +149,32 @@ func InsertMigration(title string, query string) (bool, error) {
 }
 
 // GetMigrationsByID ... Busca as migrations selecionadas na hora de executar no BD de teste
-func GetMigrationsByID(filter uint16, ids string) ([]Migrations, error) {
-	query := "select * from migrations "
+func GetMigrationsByID(filter uint16, ids string) (Migrations, error) {
+	var objQuery dbdao.ReceivedQuery
+	var appendResult Migrations
+	objQuery.Select = "select * from migrations"
+	var err error
+
+	// pagination := fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT 15 ROWS ONLY", page)
 
 	switch filter {
 	case 1: // Executado somente em produção
-		query = query + " where executed_on_test = 0"
+		objQuery.Where = "where executed_on_test = 0 and id in (" + ids + ")"
 	case 2: // Executado somente em teste
-		query = query + " where executed_on_production = 0"
+		objQuery.Where = "where executed_on_production = 0 and id in (" + ids + ")"
 	}
-	query = query + " and id in (" + ids + ")"
 
-	query = query + " order by created_at desc"
+	objQuery.Order = "order by executed_on_production asc, executed_on_test asc, created_at desc"
+	// query = query + pagination
 
-	rows, err := dbdao.Select(query)
+	appendResult.SQL, err = dbdao.Select(objQuery, 0)
 	if err != nil {
-		return nil, err
+		return Migrations{}, err
 	}
 
-	defer rows.Close()
+	defer appendResult.SQL.Rows.Close()
 
-	var migrations []Migrations
-	for rows.Next() {
+	for appendResult.SQL.Rows.Next() {
 		var id uint
 		var name string
 		var query string
@@ -173,15 +184,18 @@ func GetMigrationsByID(filter uint16, ids string) ([]Migrations, error) {
 		var executedOnProduction bool
 
 		// Get values from row.
-		err := rows.Scan(&id, &name, &query, &userID, &createdAt, &executedOnTest, &executedOnProduction)
+		err := appendResult.SQL.Rows.Scan(&id, &name, &query, &userID, &createdAt, &executedOnTest, &executedOnProduction)
 		if err != nil {
-			return nil, nil
+			return Migrations{}, err
 		}
 
 		migrationDate, err := time.Parse("2006-01-02T15:04:05Z", createdAt)
+		if err != nil {
+			return Migrations{}, err
+		}
 		createdAt = migrationDate.Format("02/01/2006 15:04")
 
-		migrations = append(migrations, Migrations{
+		appendResult.Items = append(appendResult.Items, ItemsMigration{
 			Codigo:               id,
 			Name:                 name,
 			Query:                query,
@@ -192,7 +206,7 @@ func GetMigrationsByID(filter uint16, ids string) ([]Migrations, error) {
 		})
 	}
 
-	return migrations, nil
+	return appendResult, nil
 }
 
 // DeleteMigration ... Executa query que exclui 1 registro do banco

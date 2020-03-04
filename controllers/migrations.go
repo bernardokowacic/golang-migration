@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,14 +16,26 @@ var temp = template.Must(template.ParseGlob("templates/*.html"))
 
 // Index ... Carrega homepage
 func Index(w http.ResponseWriter, r *http.Request) {
-	var registersPerPage uint32 = 15
-	queries, err := models.GetAllMigrations(0, 0, registersPerPage)
+	queries, err := models.GetAllMigrations(0, 0)
 	if err != nil {
 		fmt.Println(err)
 	}
-	transformJSON, _ := json.Marshal(queries)
 
-	var currentPage uint32 = 0
+	totalPagesFloat := float64(len(queries.Items) / 15)
+	totalPages := uint32(math.Ceil(totalPagesFloat))
+	if totalPages <= 0 {
+		totalPages = 1
+	}
+
+	fmt.Println(totalPages)
+
+	totalRegisters := 2
+
+	var currentPage uint32 = 1
+	var registersPerPage uint32 = 15
+
+	transformJSON, _ := json.Marshal(queries.Items)
+
 	var nextPage uint32 = currentPage + registersPerPage
 	var previousPage uint32 = currentPage - registersPerPage
 	if previousPage < 0 {
@@ -36,12 +49,13 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	jsonColumnsList, _ := json.Marshal(columnsList)
 
 	data := map[string]interface{}{
-		"Current_page":  currentPage,
-		"Next_page":     nextPage,
-		"Previous_page": previousPage,
-		"Queries":       queries,
-		"Columns_list":  string(jsonColumnsList),
-		"Json":          string(transformJSON),
+		"Total_registers": totalRegisters,
+		"Current_page":    currentPage,
+		"Next_page":       nextPage,
+		"Previous_page":   previousPage,
+		"Queries":         queries.Items,
+		"Columns_list":    string(jsonColumnsList),
+		"Json":            string(transformJSON),
 	}
 
 	err2 := temp.ExecuteTemplate(w, "Index", data)
@@ -71,17 +85,17 @@ func UpdateProduction(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	if len(queries) < 1 {
+	if len(queries.Items) < 1 {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Todas as migrations já foram rodadas no BD de produção")
 		return
 	}
 
-	for x := 0; x < len(queries); x++ {
-		_, err = models.ExecMigration(queries[x], "producao")
+	for x := 0; x < len(queries.Items); x++ {
+		_, err = models.ExecMigration(queries.Items[x], "producao")
 
 		if err != nil {
-			_, errLog := models.CreateMigrationLog(queries[x].Codigo, "produção - "+err.Error())
+			_, errLog := models.CreateMigrationLog(queries.Items[x].Codigo, "produção - "+err.Error())
 			if errLog != nil {
 				fmt.Println(err)
 				fmt.Fprintf(w, "Erro ao criar log de erro da migration")
@@ -118,16 +132,17 @@ func UpdateTest(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	if len(queries) < 1 {
+	if len(queries.Items) < 1 {
 		fmt.Println(err)
 		fmt.Fprintf(w, "Todas as migrations já foram rodadas no BD de teste")
 		return
 	}
 
-	for x := 0; x < len(queries); x++ {
-		_, err = models.ExecMigration(queries[x], "teste")
+	for x := 0; x < len(queries.Items); x++ {
+		_, err = models.ExecMigration(queries.Items[x], "teste")
+
 		if err != nil {
-			_, errLog := models.CreateMigrationLog(queries[x].Codigo, "teste - "+err.Error())
+			_, errLog := models.CreateMigrationLog(queries.Items[x].Codigo, "teste - "+err.Error())
 			if errLog != nil {
 				fmt.Println(err)
 				fmt.Fprintf(w, "Erro ao criar log de erro da migration")
