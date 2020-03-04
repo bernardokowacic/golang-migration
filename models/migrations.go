@@ -20,6 +20,20 @@ type Migrations struct {
 	ExecutedOnProduction bool
 }
 
+// Columns ... Cria estrutura das colunas do BD
+type Columns struct {
+	Name string
+}
+
+// Tables ... Cria estrutura das tabelas do BD
+type Tables struct {
+	Name    string
+	Columns []Columns
+}
+
+// // Tables ... Cria estrutura das tabelas do BD
+// type Tables map[string]Columns
+
 // GetAllMigrations ... Busca todas as migrations salvas no BD de migrations
 func GetAllMigrations(filter uint16, page uint16) ([]Migrations, error) {
 	query := "select * from migrations "
@@ -202,4 +216,36 @@ func DeleteMigration(id int) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// ShowAllColumns .. Lista todas as colunas do BD
+func ShowAllColumns() (map[string]interface{}, error) {
+
+	query := "select tab.name as table_name, col.name as column_name from sys.tables as tab inner join sys.columns as col on tab.object_id = col.object_id order by table_name asc, column_name asc"
+
+	rows, err := dbdao.SelectOnTest(query)
+	if err != nil {
+		return nil, err
+	}
+
+	returnData := make(map[string]interface{})
+
+	for rows.Next() {
+		var table string
+		var column string
+
+		// Get values from row.
+		err := rows.Scan(&table, &column)
+		if err != nil {
+			return nil, nil
+		}
+
+		if returnData[table] != nil {
+			returnData[table] = append(returnData[table].([]string), column)
+		} else {
+			returnData[table] = []string{column}
+		}
+	}
+
+	return returnData, nil
 }

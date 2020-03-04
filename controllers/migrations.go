@@ -43,13 +43,27 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		previousPage = currentPage - 1
 	}
 
+	// tablesList, err := models.ShowAllTables()
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// jsonTablesList, _ := json.Marshal(tablesList)
+
+	columnsList, err := models.ShowAllColumns()
+	if err != nil {
+		fmt.Println(err)
+	}
+	jsonColumnsList, _ := json.Marshal(columnsList)
+
 	data := map[string]interface{}{
 		"Total_registers": totalRegisters,
 		"Current_page":    currentPage,
 		"Next_page":       nextPage,
 		"Previous_page":   previousPage,
 		"Queries":         queries,
-		"Json":            string(transformJSON),
+		// "tables_list":     string(jsonTablesList),
+		"Columns_list": string(jsonColumnsList),
+		"Json":         string(transformJSON),
 	}
 
 	err2 := temp.ExecuteTemplate(w, "Index", data)

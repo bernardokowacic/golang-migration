@@ -47,3 +47,23 @@ func ExecOnTest(query string, args ...interface{}) (bool, error) {
 
 	return true, nil
 }
+
+// SelectOnTest ... Executa queries de select
+func SelectOnTest(query string, where ...interface{}) (*sql.Rows, error) {
+	db, err := connTest()
+	defer db.Close()
+
+	if err != nil {
+		fmt.Println("Error select: ", err.Error())
+		return nil, err
+	}
+
+	rows, rowsErr := db.Query(query, where...)
+
+	if rowsErr != nil {
+		fmt.Println("Error select: ", rowsErr.Error())
+		return nil, rowsErr
+	}
+
+	return rows, nil
+}
