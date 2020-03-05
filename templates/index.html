@@ -79,8 +79,8 @@
                 </ul>
                 <nav aria-label="Page navigation example">
                     <ul class="pagination">
-                        <li class="page-item col-6 p-0 text-center"><a class="page-link" href="#{{.Previous_page}}"><i class="fas fa-chevron-left"></i></a></li>
-                        <li class="page-item col-6 p-0 text-center"><a class="page-link" href="#{{.Next_page}}"><i class="fas fa-chevron-right"></i></a></li>
+                        <li class="page-item col-6 p-0 text-center"><a class="page-link" {{if ge .Prev_Items 0 }} href="?page={{.Previous_page}}&items={{.Prev_Items}}" {{end}} ><i class="fas fa-chevron-left"></i></a></li>
+                        <li class="page-item col-6 p-0 text-center"><a class="page-link" {{if ge .Total_registers 15 }} href="?page={{.Next_page}}&items={{.Next_Items}}" {{end}}><i class="fas fa-chevron-right"></i></a></li>
                     </ul>
                 </nav>
             </div>
@@ -149,7 +149,7 @@
     <script>
         const obj = {{.Json }}; // Retorna todas as migrations já executadas
         const tables = {{.Columns_list }}; // Retorna todas as tabelas e colunas do BD
-        history.pushState('', '', '#{{.Current_page}}')
+        // history.pushState('', '', '#{{.Current_page}}')
 
         // Monta textarea do tipo SQL
         var editor = CodeMirror.fromTextArea(document.querySelector('#print-query'), {

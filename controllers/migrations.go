@@ -16,31 +16,40 @@ var temp = template.Must(template.ParseGlob("templates/*.html"))
 
 // Index ... Carrega homepage
 func Index(w http.ResponseWriter, r *http.Request) {
-	queries, err := models.GetAllMigrations(0, 0)
+	var pageItems int = 0
+	var currentPage int = 0
+
+	page, _ := r.URL.Query()["page"]
+	items, _ := r.URL.Query()["items"]
+
+	if len(page) > 0 {
+		actualPage, _ := strconv.Atoi(page[0])
+		itemsQuantity, _ := strconv.Atoi(items[0])
+
+		currentPage = actualPage
+		pageItems = itemsQuantity
+	}
+
+	var nextPage int = currentPage + 1
+	var previousPage int = currentPage - 1
+
+	queries, err := models.GetAllMigrations(0, pageItems)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	totalPagesFloat := float64(len(queries.Items) / 15)
 	totalPages := uint32(math.Ceil(totalPagesFloat))
+
 	if totalPages <= 0 {
 		totalPages = 1
 	}
 
-	fmt.Println(totalPages)
-
-	totalRegisters := 2
-
-	var currentPage uint32 = 1
-	var registersPerPage uint32 = 15
+	if previousPage == 0 {
+		previousPage = 1
+	}
 
 	transformJSON, _ := json.Marshal(queries.Items)
-
-	var nextPage uint32 = currentPage + registersPerPage
-	var previousPage uint32 = currentPage - registersPerPage
-	if previousPage < 0 {
-		previousPage = 0
-	}
 
 	columnsList, err := models.ShowAllColumns()
 	if err != nil {
@@ -49,16 +58,19 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	jsonColumnsList, _ := json.Marshal(columnsList)
 
 	data := map[string]interface{}{
-		"Total_registers": totalRegisters,
+		"Total_registers": len(queries.Items),
 		"Current_page":    currentPage,
 		"Next_page":       nextPage,
 		"Previous_page":   previousPage,
 		"Queries":         queries.Items,
 		"Columns_list":    string(jsonColumnsList),
 		"Json":            string(transformJSON),
+		"Prev_Items":      pageItems - 15,
+		"Next_Items":      pageItems + 15,
 	}
 
 	err2 := temp.ExecuteTemplate(w, "Index", data)
+
 	if err2 != nil {
 		fmt.Println(err2)
 	}
